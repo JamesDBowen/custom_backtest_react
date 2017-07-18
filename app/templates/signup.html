@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block header %}
+{% endblock %}
+
+
+{% block main %}
+            <div class="col-sm-8 text-center col-md-offset-2 signup-container">
+              <div class="jumbotron signup-header">
+                <h1>{{ product_name }}</h1> 
+                <p>{{ tagline }}</p> 
+              </div>
+              <div class="row panel panel-default signup-panel">
+                {{ smoke_text }}
+              </div>
+             <div class="row text-center signup-form">            
+              <form action="" method="post" name="login">
+                  <input type="hidden" name="variant_id" id="variant_id" value="{{ signup_form.variant_id }}"></input>
+                  <div class="form-group">Name: {{ signup_form.name }}</div>                      
+                  <div class="form-group">Email: {{ signup_form.email }}</div>                      
+                  <p><input type="submit" value="Sign Up"></p>
+              </form>
+              </div>
+            </div>
+          </div>
+{% endblock %}
+{% block scripts %}
+{% endblock %}

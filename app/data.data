@@ -1,0 +1,76 @@
+We are going to need
+2 recipe items per group
+2 recipe groups per recipe
+
+1 recipe
+
+ChickenOfTheSeaTunaSandwichChickenOfTheSeaSalmonSoup
+Ingredients:
+ChickenOfTheSeaSalmon
+ChickenOfTheSeaTuna
+Bread
+Soup
+
+IngredientGroup:
+TunaSandwich
+SalmonSoup
+
+insert into ingredient_item values (0,'ChickenOfTheSeaSalmon','google.com','amazon.com',2);
+insert into ingredient_item values (1,'ChickenOfTheSeaTuna','google.com','amazon.com',2);
+insert into ingredient_item values (2,'Soup','google.com','amazon.com',2);
+insert into ingredient_item values (3,'Bread','google.com','amazon.com',2);
+
+insert into ingredient_group values (0,'ChickenOfTheSeaSalmonSoup',2);
+insert into ingredient_group values (1,'ChickenOfTheSeaTunaSandwich',2);
+
+insert into ingredient_group_item values (0, 1,'Unit','ChickenOfTheSeaSalmon', 7);
+insert into ingredient_group_item values (1, 1,'Unit','Soup', 7);
+insert into ingredient_group_item values (2, 1,'Unit','ChickenOfTheSeaTuna', 1);
+insert into ingredient_group_item values (3, 1,'Unit','Bread', 1);
+
+insert into recipe values (0,
+'ChickenOfTheSeaTunaSandwichChickenOfTheSeaSalmonSoup',
+'A Chicken Of The Sea Tuna Sandwich Marinated In A Chicken Of The Sea Salmon Soup, just like mother used to make',
+'How long does heaven last?',
+'Three',
+'Carefully craft a Chicken Of The Sea Tuna Sandwich and submerge it in a Chicken Of The Sea Salmon Soup.  Leave to sit for at least 24 hours before consumption for maximum flavor absorption',
+'Complete Nutrition',
+'No comment necessary',
+'google.com',
+'google.com');
+
+class Recipe(db.Model):
+    id = Column(Integer, primary_key=True)
+    title = Column(String(255))
+    description = Column(String(255))
+    duration = Column(String(255))
+    servings = Column(String(255))
+    ingredient_groups = relationship("IngredientGroup")
+    directions = Column(String(255))
+    nutrition_information = Column(String(255))
+    comment = Column(String(255))
+    hero_image_url = Column(String(255))
+    hero_video_url = Column(String(255))
+    in_this_recipe = relationship("IngredientItem")
+    
+class IngredientGroup(db.Model):
+    id = Column(Integer, primary_key=True)
+    recipe_id = Column(Integer, ForeignKey(Recipe.id))
+    title = Column(String(255))
+    items = relationship("IngredientGroupItem")
+    
+class IngredientGroupItem(db.Model):
+    id = Column(Integer, primary_key=True)
+    ingredient_group_id = Column(Integer, ForeignKey(IngredientGroup.id))
+    quantity = Column(String(10))
+    unit = Column(String(20))
+    name = Column(String(255))
+
+class IngredientItem(db.Model):
+    __tablename__ = 'ingredient_item'
+
+    id = Column(Integer, primary_key=True)
+    recipe_id = Column(Integer, ForeignKey(Recipe.id))
+    item_name = Column(String(255))
+    item_image = Column(String(255))
+    item_link = Column(String(255))

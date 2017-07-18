@@ -1,0 +1,13 @@
+<div class="row" id="product_navbar" style="height: 30px">
+    <input type="text" style="width: 200px" placeholder="Search..."/>
+</div>
+
+<div class="row" style="height: 30px">
+    <ul class="horizontal-list">
+        <li id="scroll-left"><input class="btn-lg btn btn-default" value="<"/></li>
+            {% for products as product %}
+                <li><input type="button" class="btn-lg btn btn-default" value="{{product.name}}" style="width:10%"/></li>
+            {% endfor %}
+        <li id="scroll-right"><input class="btn-lg btn btn-default" value=">"/></li>
+    </ul>
+</div>

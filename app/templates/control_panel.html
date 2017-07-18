@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block header %}
+{% endblock %}
+
+
+{% block main %}
+        <div class="container-fluid">
+            <div class="row control-panel-header text-center">
+            <h2>User Control Panel</h2>
+            </div>
+            <div class="row">
+                <div class="col-sm-2">
+                    <div class="left-panel panel-body panel panel-default">
+                        <div class="row" style="height:30px"></div>
+                        <div class="row" >
+                            <ul class="list-unstyled text-center">
+                                <li class="left-panel-li" id="products_view"></li>
+                                <li class="left-panel-li" id="variants_view"></li>
+                                <li class="left-panel-li" id="statistics_view"></li>
+                                <li class="left-panel-li" id="account_view"></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-10">
+                    <div class="panel panel-primary text-center" id="display-panel">
+                        <div class="row" id="first_panel_row"></div>
+                        <div class="row" id="second_panel_row">
+                        <ul id='midnav_list' class='list-unstyled text-centered'>
+                        </ul>
+                        </div>
+                        <div class="row" id="third_panel_row"></div>
+                        <div class="row" id="fourth_panel_row"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+{% endblock %}
+{% block scripts %}
+
+<script type="text/jsx">
+/** @jsx React.DOM */
+var NavBar = React.createClass({
+    updateProductSearch: function(event){
+        this.setState({productSearch: event.target.value});
+        console.log(this.props);
+        this.props.updateProducts();
+        /*
+        $.getJSON("http://smoketest.com/api/product", function(data){
+            console.log(data);
+            this.props.updateProducts(data.objects);
+            //this.setState({products:data.objects})
+        }.bind(this));
+        */
+    },
+    updateVariant: function(event){
+        this.setState({variantSearch: event.target.value});
+    },
+    getInitialState: function(){
+        return {
+            productSearch: '',
+            variantSearch: ''
+        }
+    },
+    componentWillMount: function(){
+        this.setState({productSearch: this.state.productSearch})
+        this.setState({productSearch: this.state.variantSearch})
+    },
+    render: function(){
+        console.log("Rendering NavBar.");
+        var style = {
+          width: 140
+        };
+        var button_classes = "btn btn-default btn-lg";
+        return (
+            <div className="update-label">
+                  <input type="text" style={style} id="product_search" placeholder="Search Products..." onChange={this.updateProductSearch}/>
+                  <input type="button" id="compare_button" className={button_classes} onClick={this.compare} value="Compare"/>
+                  <input type="text" style={style} id="variant_search" placeholder="Search Variants..." onChange={this.updateVariantSearch}/>                
+                  </div>)
+    }
+});
+
+var ProductButton = React.createClass({
+    loadProduct: function(event){
+        this.props.selectProduct(this.props.product.id);
+    },
+    render: function(){
+        console.log("Rendering product button.");
+        var button_classes = "btn btn-default btn-lg";
+        return (<input type="button" id="product_button_" className={button_classes} onClick={this.loadProduct} value={this.props.product.name}/>)
+    }
+});
+
+var ProductNav = React.createClass({
+    updateInnerComponents: function(){
+    },
+    render: function(){
+        console.log("Rendering.");
+        var style = {
+          width: 140
+        };
+        var panelClasses = "product-panel";
+        var button_classes = "btn btn-default btn-lg";
+        return (
+            <div className={panelClasses}>
+                {this.props.products}
+            </div>)
+    }
+});
+
+
+var ControlPanel = React.createClass({
+    initialize: function(){
+        $.getJSON("http://smoketest.com/api/abvariant",function(data){
+            this.setState({variants:data.objects})
+        }.bind(this));
+        $.getJSON("http://smoketest.com/api/product",function(data){
+            this.setState({products:data.objects})
+        }.bind(this));
+    },
+    selectProduct: function(product_id){
+        this.setProps({active_product=this.props.products[product_id]});
+    }
+    updateProducts: function(){
+        //this.setState({productSearch: event.target.value});
+        $.getJSON("http://smoketest.com/api/product", function(data){
+            console.log(data);
+            //this.props.updateProducts(data.objects);
+            this.setProps({products:data.objects})
+        }.bind(this));
+    },
+    render: function(){
+        console.log("Rendering control panel.");
+        var panelClasses = "control-panel";
+        var rowClasses = "row";
+        var columnClasses = "col-sm-10";
+        console.log("Control panel props:");
+        console.log(this.props);
+        return (
+            <div className={panelClasses}>
+                <div className={rowClasses}>
+                    <NavBar products={this.props.products} variants={this.props.variants} updateProducts={() => this.updateProducts()} />
+                </div>
+                <div className={rowClasses}>
+                    <SelectionBar products={this.props.products} variants={this.props.variants} />
+                </div>
+                <div className={rowClasses}>
+                    <div className={columnClasses}>
+                        <LeftPanel product={this.props.active_product}/>
+                    </div>
+                    <div className={columnClasses}>
+                        <RightPanel/>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+});
+
+var SelectionBar = React.createClass({
+    render: function(){
+        var children_comps = [];
+        console.log("prerendering");
+        console.log(this.props);
+        
+        for (i=0;i<this.props.products.length;i++){
+            console.log("Adding child element.");
+            children_comps.push(<ProductButton id={i} product={this.props.products[i]} selectProduct={this.props.selectProduct(product_id)}/>);   
+        }
+        console.log("Rendering selection bar");
+        var panelClasses = "selection-bar";
+        return (
+            <div className={panelClasses}>
+                {children_comps}
+            </div>
+        )
+            
+    }
+});
+
+var LeftPanel = React.createClass({
+    render: function(){
+        var panelClasses = "left-panel";
+        return (
+            <div className={panelClasses}>
+            </div>
+        );
+            
+    }
+});
+
+var RightPanel = React.createClass({
+    render: function(){
+        var panelClasses = "right-panel";
+        return (
+            <div className={panelClasses}>
+            </div>
+        );
+            
+    }
+});
+
+</script>
+
+
+<script type="text/jsx">
+//React.render(<NavBar/>, document.getElementById('first_panel_row'));
+//React.render(<ProductNav/>, document.getElementById('second_panel_row'));
+
+var products={};
+var variants={};
+var active_product = false;
+
+React.render(
+    <ControlPanel active_product={active_product} products={products} variants={variants}/>,
+    document.getElementById('display-panel')
+);
+</script>
+
+
+{% endblock %}

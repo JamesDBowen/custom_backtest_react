@@ -1,0 +1,5 @@
+.signup-panel {
+min-height:400px;;
+max-height:60%;
+overflow-y:scroll;
+}

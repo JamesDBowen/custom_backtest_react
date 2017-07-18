@@ -1,0 +1,11 @@
+.glowing-border-green { 
+    outline: none;
+    border-color: #3bbc46;
+    box-shadow: 0 0 10px #3bbc46;
+}
+
+.glowing-border-red { 
+    outline: none;
+    border-color: #8b0000;
+    box-shadow: 0 0 10px #8b0000;
+}

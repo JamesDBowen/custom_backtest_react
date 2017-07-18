@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block header %}
+{% endblock %}
+
+
+{% block main %}
+            <div class="col-sm-8 text-center col-md-offset-2 signup-container">
+              <div class="jumbotron signup-header">
+                <h1>{{ product_name }}</h1> 
+                <p>{{ tagline }}</p>
+              </div>
+              <div class="panel">
+                  <div class="row panel panel-default">
+                    {{ acceptance_text }}
+                  </div>
+                  <div class="row">
+                    <div id="fb-root"></div>
+                    <script language="javascript">
+                        function fbshareCurrentPage()
+                        {window.open("https://www.facebook.com/sharer/sharer.php?u="+escape("{{ share_url }}")+"&t="+document.title, '', 
+                        'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,height=300,width=600');
+                        return false; }
+                    </script>
+                    <a href="javascript:fbshareCurrentPage()" target="_blank" alt="Share on Facebook"><img src="{{ url_for('static', filename='img/facebook_button.png') }}" /></a>
+                  </div>
+              </div>
+            </div>
+{% endblock %}
+{% block scripts %}
+{% endblock %}

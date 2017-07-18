@@ -1,0 +1,20 @@
+.signup-panel {
+min-height:40%;
+max-height:60%;
+overflow-y:scroll;
+}
+
+.signup-header {
+height:20%;
+}
+
+.signup-form {
+height:10%;
+}
+.signup-container {
+height:100%;
+}
+
+.phony-stuff {
+text:q;
+}

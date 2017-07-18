@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+{% block header %}
+{% endblock %}
+
+
+{% block main %}
+        <div class="container" id="app-container">
+        </div>
+
+{% endblock %}
+{% block scripts %}
+
+<script type="text/jsx">
+/** @jsx React.DOM */
+
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.split(search).join(replacement);
+};
+
+//Lifted this with small modifications from the internet
+//Basically, the default background color of an html canvas is transparent black
+//When converting to any image format other than PNG, the transparency is removed
+//This leaves you with a horrible black background
+//Furthermore, using a PNG in chrome doesn't work very well because it limits the size to 2mpg
+//This results in some wonky stuff in how the image is saved or displayed -- not sure exactly
+//But the ideal way to get around this is to use a jpeg and then manually change the background color
+//this function did most of that out of the box, it just neeeded to actually have a context added
+//And have the format switched to jpeg
+function canvasToImage(backgroundColor)
+{
+    var context = document.getElementById('canvas').getContext('2d');
+	canvas = context.canvas;
+	//cache height and width		
+	var w = canvas.width;
+	var h = canvas.height;
+ 
+	var data;
+ 
+	//get the current ImageData for the canvas.
+	data = context.getImageData(0, 0, w, h);
+
+	//store the current globalCompositeOperation
+	var compositeOperation = context.globalCompositeOperation;
+
+	//set to draw behind current content
+	context.globalCompositeOperation = "destination-over";
+
+	//set background color
+	context.fillStyle = backgroundColor;
+
+	//draw background / rect on entire canvas
+	context.fillRect(0,0,w,h);
+ 
+	//get the image data from the canvas
+	var imageData = this.canvas.toDataURL("image/jpeg");
+ 
+	//clear the canvas
+	context.clearRect (0,0,w,h);
+
+	//restore it with original / cached ImageData
+	context.putImageData(data, 0,0);
+
+	//reset the globalCompositeOperation to what it was
+	context.globalCompositeOperation = compositeOperation;
+ 
+	//return the Base64 encoded data url string
+	return imageData;
+}
+
+function chart_series(profile_data, series_data){
+    var ctx = document.getElementById('canvas').getContext('2d');
+
+    ctx.canvas.width=700;
+    ctx.canvas.height=400;
+
+    var datasets = [];
+    //This iterates through our series and defines a graph line for it
+
+
+    //A quick color array I put together for data visualization
+    colors = Array();
+    colors.push("#3A49A8");
+    colors.push("#FF8C3A");
+    colors.push("#82061D");
+    colors.push("#7A950B");
+    colors.push("#9EB3C2");
+
+    for (i=0;i<series_data.length;i++){
+
+        //This is pulling out all of the values in the series data while excluding all of the keys
+        //Basically converting the Javascript object to an array of values without keys
+        dataset = JSON.parse(series_data[i]["data"]);
+        dates = Array();
+        values = Array();
+        for(var key in dataset) {
+            values.push(Number(dataset[key]).toFixed(2));
+        }
+        
+        
+        //A whole lot of this is basic, default cruft
+        //Probably the only really part is setting of line tension to 0 (which keeps the lines fairly straight and neat)
+        datasets.push({
+        label: series_data[i].name,
+        fill:false,
+        linetension: 0,
+        backgroundColor: colors[i%5],
+        borderColor: colors[i%10],
+        borderDash: [],
+        borderDashOffset: 0.0,
+        borderJoinStyle: 'miter',
+        pointBorderColor: colors[i%5],
+        pointBackgroundColor: "#fff",
+        pointBorderWidth: 1,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: colors[i%10],
+        pointHoverBorderColor: colors[i%10],
+        pointHoverBorderWidth: 2,
+        pointRadius: 1,
+        pointHitRadius: 10,
+        data: values,
+        spanGaps: true,
+        })
+    }
+    if (datasets.length<1){
+        return;
+    }
+
+    var data = {
+        //This grabs the keys from first series data, which is all of the dates in the series
+        //Using this is safe because it's equal between all of the series
+        labels: Object.keys(JSON.parse(series_data[0]["data"])).sort(),
+        datasets: datasets
+    };
+    
+    
+    
+    //The xAxes of type 'time' is what gives it the non-fixed distance between data points based on the time seris put in by the user
+    //The unit and display format are both set to month, which means that every month it will display a label, which will be displayed in the format given
+    //in the 'month' property of displayFormats
+    var myLineChart = Chart.Line(ctx, {
+        height: 400,
+        width: 700,
+        maintainAspectRatio: false,
+        data: data,
+        options:  {       
+            scales: {
+                xAxes: [{
+                    type: 'time',                
+                    time: {
+                        unit: 'month',
+                        displayFormats: {
+                           'month': 'YYYY-MM-DD'
+                        }
+                    }
+                }],
+                yAxes: [{
+                    ticks: {
+                        suggestedMin: profile_data.start_y,
+                    }
+                }]
+
+            }
+        }
+
+    });
+
+}
+
+
+
+//Used for all the various glyph buttons
+var GlyphButton = React.createClass({
+    render: function(){
+        return (<button type="button" className="btn btn-default btn-lg" onClick={this.props.callback}>
+        <div className="row"><span>{this.props.label}</span></div>
+        </button>
+        );
+    }
+});
+
+var ShareWidget = React.createClass({
+    render: function(){
+        //The various labels and classes for the share widget when the link is not up to date with all changes the user has made
+        var classes = "form-control glowing-border-red";
+        var label = "Share link outdated: save to update";
+        var sharelink = "http://"+window.location.hostname+"/app?profile_id=" + this.props.profile_id
+
+        //This is for when the link IS up to date with all of the changes the user has made
+        if (this.props.saved){
+            label = "Use this link to share!";
+            classes = "form-control glowing-border-green";
+        }
+        return (<div className="form-group">
+            <label for="share">{label}</label>
+            <input readonly="readonly" type="text" className={classes} id="share" placeholder="Save A Config Profile To Share" value={sharelink}></input>
+        </div>);
+    }
+});
+
+
+//Used for all of the inputs on the profile-level data and nowhere else IIRC
+//Uses full form groups for each input
+//Not used for the series data because that needs to be more compact and weird
+var Input = React.createClass({
+    onChange: function(e){
+        value = e.target.value;
+        field_name = this.props.input_name
+        this.props.onChange(field_name,value);
+    },
+    render: function(){
+        var classes = "form-control "
+        classes += this.props.classes
+        return (<div className="form-group">
+            <label for={this.props.input_name}>{this.props.input_label}</label>
+            <input onChange={this.onChange} type={this.props.type} className={classes} id={this.input_name} placeholder={this.props.placeholder} value={this.props.value}></input>
+        </div>);
+    }
+});
+
+
+
+//At one time, I concluded this needed to be a separate widget for some reason
+//I don't see exactly why now.  I may change this, but if you're reading this comment, obviously I didn't.
+var Upload = React.createClass({
+    render: function(){
+        return (<input onChange={this.props.onChange} type="file" className="custom-upload form-control" id={this.input_name} ></input>);
+    }
+});
+
+
+//This is used for handling the display and manipulation of all series-related data
+//It gets its own widget because it has a bit of inherent complexity and has a lot of standardized sub elements
+var SeriesWidget = React.createClass({
+    //This is used for updating the simpler properties on the series
+    //Not used for deleting the series or processing data for upload
+    onPropertyChange: function(e){
+        if (e.target.type=="checkbox"){
+            if (e.target.checked!=false){
+                this.props.onSeriesChange(this.props.series.id,e.target.name,true);
+                return;
+            } else {
+                this.props.onSeriesChange(this.props.series.id,e.target.name,false);
+            }
+        }
+        this.props.onSeriesChange(this.props.series.id,e.target.name,e.target.value);
+    },
+    onUpload: function(e){
+        var fileReader = new FileReader();
+        fileReader.onload = function(e) {
+            text = e.target.result;
+            //var allTextLines = text.split(/\r\n|\n/);
+            var lines = [];
+            var dates = [];
+            var values = [];
+            var total = {};
+            allTextLines = $.csv.toArrays(e.target.result);
+            for (var i=0; i<allTextLines.length; i++) {
+                var data = allTextLines[i];
+                if (typeof(data[1])!="undefined"){
+                    total[data[0].replaceAll('"',"").replaceAll("/","-")]=data[1].replaceAll("$","").replaceAll(",","").replaceAll('"',"");
+                }
+            }
+            data=JSON.stringify(total);
+            this.props.onSeriesChange(this.props.series.id,"data",data);
+        }.bind(this);
+        fileReader.readAsText(e.target.files[0]);
+    },
+    deleteSeries: function(){
+        this.props.deleteSeries(this.props.series.id);
+    },
+    render: function(){
+        if (this.props.series.custom==true){
+            widget=<Upload onChange={this.onUpload} />
+        }
+        else {
+            widget=<input onChange={this.onPropertyChange} type="text" name="symbol" className="form-control" id="{this.props.series.id}" placeholder="Symbol" value={this.props.series.symbol} ></input>
+        }
+        
+        var button_classes = "btn btn-lg";
+        return (<div className="form-group">
+            <div className="row-fluid">
+                <label>Series:</label>
+                <GlyphButton glyphicon="glyphicon glyphicon-minus-sign" callback={this.deleteSeries} /> 
+            </div>
+            <div className="row">
+                <div className="col-sm-3">
+                    <label>Custom:</label>
+                </div>
+                <div className="col-sm-2">
+                    <input type="checkbox" name="custom" onChange={this.onPropertyChange} id={this.props.series.id} checked={this.props.series.custom==true ? 'checked' : ''}></input>
+                </div>
+                <div className="col-sm-7">
+                    {widget}
+                </div>
+            </div>
+            <input onChange={this.onPropertyChange} type="text" className="form-control" name="name" id={this.props.series.id} placeholder="Name" value={this.props.series.name}></input>
+
+        </div>);
+    }
+});
+
+
+var Graph = React.createClass({
+    updateInnerComponents: function(){
+    },
+    componentDidMount: function(){
+        this.componentDidUpdate();
+    },
+    componentDidUpdate: function() {
+        chart_series(this.props.profile,this.props.series);
+    },
+    render: function(){
+        var style = {
+          width: 140
+        };
+
+        var panelClasses = "product-panel";
+        var button_classes = "btn btn-default btn-lg";
+        return (
+            <div className={panelClasses}>
+                {{ share_price }}
+                <canvas id="canvas" width="700" height="400"></canvas>
+            </div>)
+    }
+});
+
+
+//This is the react component for the configuration page
+//Pretty self-documenting, there isn't a lot complex or unexpected going on here
+//Largely just an organizational container without much internal logic
+//The real action is in the layers above and below
+var ConfigPage = React.createClass({
+    render: function(){
+        var columnClasses = "col-sm-6";
+        var series = [];
+        var series_number = this.props.series.length;
+        for (i=0;i<this.props.series.length;i++){
+            series.push(<SeriesWidget series={this.props.series[i]} onSeriesChange={this.props.onSeriesChange} deleteSeries={this.props.deleteSeries} />);
+        }
+        series.push(<GlyphButton glyphicon="glyphicon glyphicon-plus-sign" callback={this.props.addSeries}/>);
+        
+        
+        var scrollStyle = {
+            overflowY: "scroll"
+        };
+
+        console.log(this.props.profile);
+        return (
+            <div className="panel">
+                <div className={columnClasses}>
+                    <Input input_name="start_amount" type="number" input_label="Starting Amount $" placeholder="100,000" value={this.props.profile.start_amount} onChange={() => this.props.updateFormState(field_name, value)} />
+                    <Input input_name="monthly_addition" type="number" input_label="Monthly Addition $" placeholder="1,000" value={this.props.profile.monthly_addition} onChange={() => this.props.updateFormState(field_name, value)} />
+                    <Input input_name="start_date" type="text" input_label="Start Date" classes="datepicker" placeholder="1901-01-01" value={this.props.profile.start_date} onChange={() => this.props.updateFormState(field_name, value)} />
+                    <Input input_name="end_date" type="text" input_label="End Date" classes="datepicker" placeholder="1901-01-01" value={this.props.profile.end_date} onChange={() => this.props.updateFormState(field_name, value)} />
+                    <Input input_name="start_y" type="number" input_label="Y Axis Start" placeholder="0" value={this.props.profile.start_y} onChange={() => this.props.updateFormState(field_name, value)} />
+                    <ShareWidget saved={this.props.saved} profile_id={this.props.profile.id} />
+                </div>
+                <div className={columnClasses} style={scrollStyle}>
+                    {series}
+                </div>
+            </div>
+        )
+            
+    },
+    componentDidMount: function(){
+        this.componentDidUpdate();
+    },
+    componentDidUpdate: function() {
+        $(".datepicker").each(function(){
+            $(this).datepicker({
+                dateFormat:'yy-mm-dd',
+                onSelect: function() {
+                    //This is Very Bad
+                    //I'm playing with the DOM in a weird way
+                    //The reason I'm doing this is because I set up my reactjs in a very unconventional, primitive way
+                    //By including it raw from cdnjs instead of using node
+                    //I have learned my lesson and in future projects I will do things the right way
+                    //But it would have been a pretty extensive change
+                    //Anyway, this is necessary to get react's onChange event to fire so that the date is actually saved
+                   var event = new Event('input', { bubbles: true });
+                   this.dispatchEvent(event);
+                }
+            });
+        });
+    },
+
+});
+
+
+//Main reaction class for the widget.  Lots going on here
+var App = React.createClass({
+    getInitialState: function(){
+        if (this.props.profile_id!=0){
+            this.loadProfile();
+            return {profile:this.props.profile,series:this.props.series,temp_series_count:0,saved:0,start_y:0};
+        } else {
+            //This basically builds a whole new temporary profile object
+            profile = {}
+            profile.id = -1
+            profile.start_amount="";
+            profile.monthly_addition="";
+            profile.start_date="";
+            profile.start_y=0;
+            profile.end_date="";
+            profile.series = this.props.series;
+            return {profile:profile,series:profile.series,temp_series_count:0,saved:0};
+        }
+    },
+    addSeries: function(){
+        profile = this.state.profile;
+        //This temp series count stuff is just to be sure we don't have colliding indexes
+        //I went with a very simple incrementation without any backfill in the case of deleted series
+        var new_series = {id:"temp"+this.state.temp_series_count,custom:false,name:"",data:"",symbol:""};
+        profile.series.push(new_series);
+        
+        this.setState({profile:profile,series:profile.series,temp_series_count:this.state.temp_series_count+1,saved:0})
+    },
+    deleteSeries: function(series_id){
+        profile = this.state.profile;
+        var selected_series = -1;
+        for (i=0;i<this.state.profile.series.length;i++){
+            if (this.state.profile.series[i].id==series_id){
+                selected_series = i;
+                break;
+            }
+        }
+        if (selected_series==-1){
+            return;
+        }
+        profile.series.splice(i, 1);
+        this.setState({profile:profile,series:profile.series,saved:0})
+        this.forceUpdate();
+
+    },
+    onSeriesChange: function(series,field,value){
+        var selected_series = -1;
+        
+        //We have to find the appropriate series since we're doing this by series ID instead of the widget index
+        //After seeing what a PITA this is, I am probably going to use the widget index in the future
+        //I may rewrite this before showing this code to anyone, but I'm not sure
+        for (i=0;i<this.state.profile.series.length;i++){
+            if (this.state.profile.series[i].id==series){
+                selected_series = i;
+                break;
+            }
+        }
+        if (selected_series==-1){
+            return;
+        }
+        var series_data = this.state.profile.series;
+        series_data[selected_series][field]=value;
+        var profile_data = this.state.profile;
+        profile_data.series = series_data
+        this.setState({profile:profile_data,series:profile_data.series,saved:0});
+    },
+    updateFormState(field_name,value){
+        profile_data=this.state.profile;
+        profile_data[field_name]=value;
+        this.setState({profile:profile_data,saved:0});
+    },
+    saveConfig: function(){
+        $.ajax({
+            url: '/crunch_profile',
+            type: 'POST',
+            contentType: "application/json",
+            data: JSON.stringify(this.state.profile),
+            success: function(result) {
+                this.setState({profile:result.profile,series:result.profile.series,saved:1});
+            }.bind(this)
+        });
+    },
+    toggleConfigPage: function(){
+        this.setProps({active_panel:(parseInt(this.props.active_panel)+1)%2});
+    },
+    loadProfile: function(){
+        state = {};
+        $.getJSON("http://"+window.location.hostname+"/api/profile/"+this.props.profile_id,function(data){
+            
+            this.setState({profile:data,series:data.series,saved:1});
+            this.forceUpdate();
+        }.bind(this));
+    },
+    printGraph: function(){
+        image_url = canvasToImage("#FFFFFF");
+        window.open().location = image_url;
+    },
+    render: function(){
+        var panelClasses = "control-panel col-sm-6";
+        var rowClasses = "row";
+        var buttonRowClasses = "row text-right";
+        var columnClasses = "col-sm-3";
+        controlButtons = [];
+        if (this.props.active_panel==1){
+            controlButtons.push(<GlyphButton label="Save" glyphicon="glyphicon glyphicon-floppy-save" callback={()=>this.saveConfig()} />);
+        }
+        else {
+            controlButtons.push(<GlyphButton label="Print" glyphicon="glyphicon glyphicon-print" callback={()=>this.printGraph()} />);  
+        }
+        if (this.props.active_panel==1){
+            var config_label="Graph";
+        } else {
+        var config_label = "Config";
+        }
+        controlButtons.push(<GlyphButton label={config_label} glyphicon="glyphicon glyphicon-cog" callback={()=>this.toggleConfigPage()} />);
+        if (this.props.active_panel==1) {
+            return (
+                <div className={panelClasses}>
+                    <div className={rowClasses}>
+                        <ConfigPage addSeries={this.addSeries} onSeriesChange={this.onSeriesChange} series={this.state.series} profile={this.state.profile} updateFormState={() => this.updateFormState(field_name, value)} deleteSeries={this.deleteSeries} saved={this.state.saved} />
+                    </div>
+                    <div className={buttonRowClasses}>
+                        {controlButtons}
+                    </div>
+                </div>
+            );
+        } else {
+            return (
+                <div className={panelClasses}>
+                    <div className={rowClasses}>
+                        <Graph series={this.state.series} profile={this.state.profile} />
+                    </div>
+                    <div className={buttonRowClasses}>
+                        {controlButtons}
+                    </div>
+                </div>);
+        }
+    }
+});
+
+</script>
+
+
+<script type="text/jsx">
+var series = [];
+var profile = [];
+var active_panel={{active_panel}};
+var profile_id={{profile_id}};
+
+React.render(
+    <App profile_id={profile_id} active_panel={active_panel}series={series} profile={profile}/>,
+    document.getElementById('app-container')
+);
+</script>
+
+<script type="text/javascript">
+
+
+
+</script>
+
+{% endblock %}

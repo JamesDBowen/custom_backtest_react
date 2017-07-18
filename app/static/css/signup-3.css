@@ -1,0 +1,8 @@
+.signup-panel {
+min-height:400px;;
+max-height:60%;
+overflow-y:scroll;
+vertical-align: center;
+display: flex;
+align-items: center;
+}

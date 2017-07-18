@@ -1,0 +1,14 @@
+.signup-panel {
+    min-height:300px;
+    max-height:60%;
+    overflow-y:scroll;
+    background:white;
+}
+
+.signup-form {
+    background:white;
+}
+
+.display-panel {
+    min-height:500px;
+}

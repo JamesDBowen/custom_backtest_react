@@ -1,0 +1,28 @@
+.signup-panel {
+    min-height:300px;
+    max-height:60%;
+    overflow-y:scroll;
+    background:white;
+}
+
+.signup-form {
+    background:white;
+}
+
+#display-panel {
+    min-height:500px;
+}
+
+.left-panel {
+    min-height: 500px;
+    background-color:white;
+    border: 2px !important;
+    border-color: blue !important;
+}
+
+.left-panel-li {
+    background-color:white;
+    size:14;
+    border: 1px;
+    border-color: blue;
+}
